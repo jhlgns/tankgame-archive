@@ -2,7 +2,7 @@
 
 This project is work-in-progress. Expect it not to compile or run properly.
 
-This project uses OpenGL for rendering
+This project uses OpenGL for rendering and SDL as the media framework. No engine was used, everything was hand-written, for fun and (no) profit.
 
 ## Screenshots:
 ![](./misc/screenshots/aim_guide_tiny_planets.PNG)
