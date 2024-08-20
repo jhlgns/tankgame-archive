@@ -1,0 +1,3 @@
+Fix your time step          https://gafferongames.com/post/fix_your_timestep/
+Circle tangent              https://doubleroot.in/lessons/straight-line/distance-of-a-point-from-a-line/
+Floating point determinism  https://gafferongames.com/post/floating_point_determinism/

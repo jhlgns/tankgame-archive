@@ -1,0 +1,56 @@
+stages:
+    - build
+    - build_image
+    - deploy
+
+variables:
+  DOCKER_TLS_CERTDIR: ""
+
+build:
+    stage: build
+    image: registry.gitlab.com/roepel/tankgame
+    script:
+        - source /opt/emsdk/emsdk_env.sh
+        - git submodule init
+        - git submodule sync
+        - git submodule update
+        - mkdir -p build_client
+        - cd build_client
+        - emconfigure cmake ..
+        - emmake make VERBOSE=1 -j4 client
+        - cd ..
+        - mkdir output
+        - cp build_client/client.js   output/
+        - cp build_client/client.wasm output/
+        - cp build_client/client.data output/
+    artifacts:
+        paths:
+        - output
+
+build_image:
+    image: docker:19.03
+    services:
+     - name: docker:19.03-dind
+       alias: docker
+    stage: build_image
+    script:
+        - cp -r output  docker/deploy/
+        - cp -r assets  docker/deploy/
+        - cp index.html docker/deploy/
+        - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+        - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA docker/deploy
+        - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+
+deploy_dev:
+    stage: deploy
+    image: registry.gitlab.com/roepel/tankgame/openssh-client
+    variables:
+        SSH_PRIVATE_KEY: $SSH_DEV_PRIVATE_KEY
+    script:
+        - mkdir -p ~/.ssh
+        - eval $(ssh-agent -s)
+        - ssh-add <(echo "$SSH_DEV_PRIVATE_KEY")
+        - ssh -o StrictHostKeyChecking=no -p 1302 gitlab-deploy@$SERVER_IP "ls"
+
+        - ssh -p 1302 gitlab-deploy@$SERVER_IP "docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY"
+        - ssh -p 1302 gitlab-deploy@$SERVER_IP "docker rm -f deployment ; docker run -d --name deployment -p 8080:8080 $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
